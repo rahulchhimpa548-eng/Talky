@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Talk to Manish - Modern Walkie-Talkie Transceiver</title>
+  <meta name="description" content="A modern walkie-talkie website where anyone can tune in and directly transmit voice and text radio messages to Manish." />
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0; }
+      100% { transform: scale(0.95); opacity: 0; }
+    }
+    .pulse-ring-anim {
+      animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+    /* Custom scanline texture for LCD */
+    .scanlines {
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+      background-size: 100% 4px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-amber-500 selection:text-slate-950">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-slate-900/90 border-b border-slate-800/90 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-amber-400 shadow-sm shadow-amber-500/20">
+          <i data-lucide="radio" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-black tracking-tight text-white uppercase font-mono">Talk to Manish</h1>
+            <span class="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              LIVE TRANSCEIVER
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400 font-mono">Direct Two-Way Radio • 146.520 MHz</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-3">
+        <button onclick="toggleModal('guide-modal')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium border border-slate-700 flex items-center gap-1.5 transition-colors">
+          <i data-lucide="help-circle" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span class="hidden sm:inline">Radio Guide</span>
+        </button>
+        <button id="owner-btn" onclick="toggleModal('owner-modal')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium flex items-center gap-1.5 transition-all">
+          <i data-lucide="key-round" class="w-3.5 h-3.5 text-slate-400"></i>
+          <span id="owner-btn-text">I am Manish</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- Manish Status Broadcast Card -->
+    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl text-slate-200 relative overflow-hidden">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+          <div class="relative">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-400 p-0.5 shadow-lg shadow-amber-500/20">
+              <div class="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-amber-400 font-black text-xl tracking-tight">
+                M
+              </div>
+            </div>
+            <span class="absolute -bottom-1 -right-1 flex h-4 w-4">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span id="manish-status-dot" class="relative inline-flex rounded-full h-4 w-4 border-2 border-slate-950 bg-emerald-500"></span>
+            </span>
+          </div>
+
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <h2 class="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
+                Manish
+                <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-amber-400 font-normal border border-slate-700/60">BASE-ALPHA</span>
+              </h2>
+              <span id="manish-status-pill" class="text-[11px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full border bg-emerald-500 text-emerald-100 border-emerald-400/40">
+                LIVE ON FREQUENCY
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
+              <span class="text-slate-300 font-medium">Website Owner & Base Station Operator</span>
+              <span>•</span>
+              <span class="flex items-center gap-1 text-slate-400">
+                <i data-lucide="map-pin" class="w-3 h-3 text-amber-400"></i>
+                New Delhi, India / Base Station
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 text-xs font-mono text-slate-400">
+          <span class="flex items-center gap-1 text-sky-400 bg-sky-950/60 px-2 py-1 rounded border border-sky-800/50">
+            <i data-lucide="sparkles" class="w-3 h-3"></i> AI Auto-Relay Active
+          </span>
+          <span class="flex items-center gap-1">
+            <i data-lucide="battery" class="w-3.5 h-3.5 text-emerald-400"></i> 98%
+          </span>
+        </div>
+      </div>
+
+      <!-- Broadcast message banner -->
+      <div class="mt-3.5 pt-3 border-t border-slate-800 flex items-center gap-2 text-xs">
+        <i data-lucide="radio-tower" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+        <span class="text-slate-400 font-mono">Broadcast:</span>
+        <span id="status-broadcast-msg" class="text-amber-200/90 italic font-sans">"Standing by on 146.520 MHz. Key in anytime!"</span>
+      </div>
+    </div>
+
+    <!-- 2 Column Layout: Walkie-Talkie Transceiver & Live Monitor -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- LEFT COLUMN: Authentic Walkie-Talkie Handset -->
+      <div class="lg:col-span-5 flex flex-col items-center">
+        <div class="w-full max-w-lg relative bg-gradient-to-b from-neutral-900 via-neutral-950 to-neutral-900 border-2 border-neutral-700/80 rounded-3xl p-5 sm:p-6 shadow-2xl text-slate-100 shadow-black/80">
+          
+          <!-- Antenna -->
+          <div class="absolute -top-12 left-8 w-5 h-14 bg-gradient-to-r from-neutral-700 via-neutral-600 to-neutral-800 rounded-t-full border border-neutral-600 shadow-lg flex flex-col items-center">
+            <div class="w-6 h-3 bg-neutral-800 rounded-full -top-1 absolute border-b border-neutral-900"></div>
+            <div class="w-1 h-8 bg-neutral-950/40 rounded-full mt-3"></div>
+          </div>
+
+          <!-- Rotary Top Knobs -->
+          <div class="absolute -top-7 right-8 flex items-end gap-3">
+            <button onclick="toggleAudioMute()" title="Toggle Sound FX" class="w-10 h-8 bg-neutral-800 rounded-t-lg border border-neutral-600 flex flex-col items-center justify-center cursor-pointer hover:brightness-110 active:scale-95 transition-transform">
+              <div class="w-1 h-3 bg-amber-400 rounded-full"></div>
+              <span class="text-[8px] font-mono text-neutral-400">VOL</span>
+            </button>
+            <button onclick="cycleNextChannel()" title="Rotate Channel Dial" class="w-12 h-9 bg-neutral-800 rounded-t-xl border border-neutral-600 flex flex-col items-center justify-center cursor-pointer hover:brightness-110 active:scale-95 transition-transform shadow-md">
+              <div class="w-1.5 h-3.5 bg-emerald-400 rounded-full"></div>
+              <span class="text-[8px] font-mono font-bold text-amber-400">TUNE</span>
+            </button>
+          </div>
+
+          <!-- Top Brand Header -->
+          <div class="flex items-center justify-between pt-2 pb-3 border-b border-neutral-800">
+            <div class="flex items-center gap-2">
+              <i data-lucide="radio" class="w-4 h-4 text-amber-400"></i>
+              <span class="font-mono font-black text-xs tracking-wider text-neutral-200">
+                TALK TO MANISH <span class="text-amber-500 font-normal text-[10px]">// TR-8800</span>
+              </span>
+            </div>
+            <button onclick="promptChangeCallsign()" class="text-[11px] font-mono px-2 py-0.5 rounded bg-neutral-800 hover:bg-neutral-700 text-amber-300 border border-neutral-700 transition-colors">
+              ID: <span id="current-callsign-display" class="font-bold text-white">ROVER-77</span>
+            </button>
+          </div>
+
+          <!-- Backlit LCD Screen -->
+          <div class="mt-3.5 p-4 rounded-2xl bg-[#091512] border-2 border-emerald-950 font-mono relative overflow-hidden shadow-inner scanlines">
+            <div class="flex items-center justify-between text-[11px] text-emerald-500/80 mb-1">
+              <span class="flex items-center gap-1">
+                <i data-lucide="wifi" class="w-3 h-3 text-emerald-400"></i>
+                <span>RSSI: -58dBm</span>
+                <span class="text-emerald-700">|</span>
+                <span id="lcd-channel-code" class="text-emerald-400 font-bold">CH-01</span>
+              </span>
+              <div class="flex items-center gap-1.5">
+                <span id="badge-tx" class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-950 text-emerald-800">TX</span>
+                <span id="badge-rx" class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500 text-black font-extrabold">RX</span>
+              </div>
+            </div>
+
+            <div class="flex items-baseline justify-between my-1">
+              <div>
+                <div class="text-3xl sm:text-4xl font-black tracking-tight text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]">
+                  <span id="lcd-freq">146.520</span>
+                  <span class="text-xs sm:text-sm font-semibold ml-1 text-emerald-600">MHz</span>
+                </div>
+                <div id="lcd-channel-name" class="text-xs font-semibold text-emerald-300/90 tracking-wide mt-0.5">
+                  Direct to Manish
+                </div>
+              </div>
+
+              <div id="lcd-state-info" class="text-right text-[11px] text-emerald-500/70">
+                <div>STANDBY</div>
+                <div>SQL: AUTO</div>
+              </div>
+            </div>
+
+            <!-- Signal Level VU Meter -->
+            <div class="mt-2.5 pt-2 border-t border-emerald-900/60 flex items-center justify-between gap-1">
+              <span class="text-[10px] text-emerald-600 font-mono">SIG:</span>
+              <div id="vu-meter" class="flex items-end gap-1 flex-1 h-3.5 px-1">
+                <!-- 12 Bars generated via JS -->
+              </div>
+              <span id="vu-label" class="text-[10px] text-emerald-400 font-bold">MONITOR</span>
+            </div>
+          </div>
+
+          <!-- Channel Selection Pills -->
+          <div class="mt-4">
+            <label class="text-[11px] font-mono text-neutral-400 mb-1.5 flex justify-between">
+              <span>Select Frequency:</span>
+              <span class="text-amber-400 font-bold" id="active-chan-label">CH-01</span>
+            </label>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="channel-buttons-container">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Central Push-To-Talk Button -->
+          <div class="mt-5 p-4 rounded-2xl bg-neutral-900/90 border border-neutral-800 flex flex-col items-center justify-center">
+            <div class="text-xs text-neutral-400 mb-3 flex items-center gap-1.5 font-mono text-center">
+              <span>Hold button or press</span>
+              <kbd class="px-1.5 py-0.5 bg-neutral-800 text-amber-300 rounded border border-neutral-700 font-bold text-[10px]">SPACEBAR</kbd>
+              <span>to speak</span>
+            </div>
+
+            <div class="relative flex items-center justify-center">
+              <span id="tx-pulse-ring" class="hidden absolute -inset-3 rounded-full bg-rose-500/40 pulse-ring-anim pointer-events-none"></span>
+
+              <button
+                id="ptt-btn"
+                onmousedown="startPtt(event)"
+                onmouseup="stopPtt(event)"
+                ontouchstart="startPtt(event)"
+                ontouchend="stopPtt(event)"
+                class="w-32 h-32 sm:w-36 sm:h-36 rounded-full border-4 border-neutral-600/90 shadow-2xl flex flex-col items-center justify-center cursor-pointer select-none touch-none transition-all active:scale-95 bg-gradient-to-b from-neutral-700 via-neutral-800 to-neutral-900 text-neutral-200"
+              >
+                <i data-lucide="mic" id="ptt-mic-icon" class="w-8 h-8 sm:w-10 sm:h-10 text-amber-400 mb-1"></i>
+                <span id="ptt-text" class="font-mono font-black text-sm uppercase tracking-wider">PUSH TO TALK</span>
+                <span id="ptt-subtext" class="text-[10px] font-mono text-neutral-400 uppercase mt-0.5">PRESS & HOLD</span>
+              </button>
+            </div>
+
+            <!-- Lock and Hail Tone Buttons -->
+            <div class="mt-4 flex items-center gap-3 w-full justify-center">
+              <button onclick="togglePttLock()" id="ptt-lock-btn" class="px-3 py-1.5 rounded-xl text-xs font-mono bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border border-neutral-700 flex items-center gap-1.5 transition-all">
+                <i data-lucide="lock" class="w-3.5 h-3.5 text-neutral-400"></i>
+                <span id="ptt-lock-text">Click-to-Talk Lock</span>
+              </button>
+              <button onclick="sendHailAlert()" class="px-3 py-1.5 rounded-xl text-xs font-mono bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 flex items-center gap-1.5 transition-all">
+                <i data-lucide="bell" class="w-3.5 h-3.5 text-amber-400 animate-bounce"></i>
+                <span>1750 Hz Call Hail</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Direct Text Dispatch Input -->
+          <div class="mt-4 pt-4 border-t border-neutral-800">
+            <label class="text-[11px] font-mono text-neutral-400 mb-1.5 flex justify-between">
+              <span>Text Radio Dispatch:</span>
+              <span class="text-neutral-500">Radio Telegraph</span>
+            </label>
+            <form onsubmit="handleSendText(event)" class="flex gap-2">
+              <input
+                id="text-input"
+                type="text"
+                placeholder="Message Manish on frequency..."
+                class="flex-1 bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-amber-500 font-sans"
+              />
+              <button type="submit" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-all active:scale-95">
+                <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                <span>TRANSMIT</span>
+              </button>
+            </form>
+
+            <!-- Quick 10-Codes -->
+            <div class="mt-2.5 flex flex-wrap gap-1.5">
+              <button onclick="setQuickText('10-4! (Acknowledged)')" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border border-neutral-700">10-4!</button>
+              <button onclick="setQuickText('What is your 20? (Location)')" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border border-neutral-700">What's your 20?</button>
+              <button onclick="setQuickText('Hi Manish, quick question for you!')" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border border-neutral-700">Quick question</button>
+              <button onclick="setQuickText('Are you free for project collaboration?')" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border border-neutral-700">Collab?</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: Live Frequency Transmissions Monitor -->
+      <div class="lg:col-span-7 h-full">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl text-slate-200 flex flex-col min-h-[500px]">
+          <!-- Feed Header -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-800">
+            <div>
+              <div class="flex items-center gap-2">
+                <i data-lucide="radio" class="w-4 h-4 text-amber-400"></i>
+                <h3 class="font-bold text-base text-white tracking-tight">Live Frequency Monitor</h3>
+                <span id="transmissions-count" class="text-xs font-mono px-2 py-0.5 rounded-full bg-slate-800 text-amber-400 border border-slate-700">
+                  3 transmissions
+                </span>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">Incoming radio dispatches between visitors & Manish</p>
+            </div>
+
+            <!-- Filter Pills -->
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0" id="filter-container">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Messages Container -->
+          <div id="messages-list" class="flex-1 overflow-y-auto space-y-3 pt-3.5 pr-1 max-h-[600px]">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Radio Guide Modal -->
+  <div id="guide-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-lg w-full shadow-2xl text-slate-200 relative">
+      <button onclick="toggleModal('guide-modal')" class="absolute top-4 right-4 p-1.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+          <i data-lucide="radio" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white">How to Talk to Manish</h3>
+          <p class="text-xs text-slate-400">Walkie-Talkie Radio Operator Handbook</p>
+        </div>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+          <div class="font-bold text-amber-400 font-mono text-[11px] uppercase">Radio Protocol</div>
+          <p><strong>1. Press & Hold PTT:</strong> Hold the rubber button or hold the <kbd class="px-1 py-0.5 bg-slate-800 text-amber-300 rounded border border-slate-700 font-mono">SPACEBAR</kbd> and speak into your mic.</p>
+          <p><strong>2. Release to Transmit:</strong> Letting go automatically generates a Roger Beep and broadcasts your audio to Manish's Base Station.</p>
+          <p><strong>3. Auto-Relay Copilot:</strong> If Manish is away from his headset, his automated radio responder acknowledges your message immediately!</p>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 font-mono text-[11px] grid grid-cols-2 gap-2">
+          <div><span class="text-amber-400 font-bold">10-4:</span> Acknowledged</div>
+          <div><span class="text-amber-400 font-bold">10-20:</span> Location</div>
+          <div><span class="text-amber-400 font-bold">Over:</span> Done speaking</div>
+          <div><span class="text-amber-400 font-bold">Roger:</span> Understood</div>
+        </div>
+      </div>
+
+      <div class="mt-5 flex justify-end">
+        <button onclick="toggleModal('guide-modal')" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs">
+          10-4, Got It!
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Owner Login Modal -->
+  <div id="owner-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-slate-100 relative">
+      <button onclick="toggleModal('owner-modal')" class="absolute top-4 right-4 p-1.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+          <i data-lucide="shield-check" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white">Owner Authorization</h3>
+          <p class="text-xs text-slate-400">Speak as Manish (Base Station)</p>
+        </div>
+      </div>
+
+      <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 mb-3">
+        Enter owner station passkey (Default: <strong class="text-amber-400 font-mono">1234</strong>)
+      </div>
+
+      <input id="owner-passkey" type="password" placeholder="Enter passkey..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-amber-500 mb-4" />
+
+      <div class="flex justify-end gap-2">
+        <button onclick="toggleModal('owner-modal')" class="px-3 py-1.5 text-xs text-slate-400">Cancel</button>
+        <button onclick="handleOwnerLogin()" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs">Verify</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPLETE CLIENT-SIDE ENGINE JAVASCRIPT -->
+  <script>
+    // --- Data & State ---
+    const CHANNELS = [
+      { id: 1, name: "Direct to Manish", code: "CH-01", frequency: "146.520 MHz" },
+      { id: 2, name: "Casual Radio", code: "CH-02", frequency: "147.100 MHz" },
+      { id: 3, name: "Projects & Tech", code: "CH-03", frequency: "145.330 MHz" },
+      { id: 4, name: "Priority Ping / SOS", code: "CH-04", frequency: "144.200 MHz" }
+    ];
+
+    let currentChannelId = 1;
+    let currentFilterId = "ALL";
+    let isOwnerMode = false;
+    let userName = localStorage.getItem("walkie_name") || "Guest Operator";
+    let userCallsign = localStorage.getItem("walkie_callsign") || `ROVER-${Math.floor(100 + Math.random() * 900)}`;
+
+    let messages = [
+      {
+        id: "msg-1",
+        channelId: 1,
+        senderName: "Manish",
+        senderCallsign: "BASE-ALPHA",
+        isOwner: true,
+        text: "10-4 to all units! This is Manish. Welcome to 'Talk to Manish' — my personal modern walkie-talkie transceiver. Press and hold PTT to transmit your voice, or type a dispatch below. Over!",
+        type: "text",
+        timestamp: new Date(Date.now() - 1000 * 60 * 12).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      },
+      {
+        id: "msg-2",
+        channelId: 1,
+        senderName: "Alex",
+        senderCallsign: "ROVER-7",
+        isOwner: false,
+        text: "Roger that Base-Alpha! Radio check from California. Loud and crystal clear on 146.520. Great UI! Over.",
+        type: "text",
+        timestamp: new Date(Date.now() - 1000 * 60 * 6).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ];
+
+    // --- Web Audio Synthesizer ---
+    let audioCtx = null;
+    let soundEnabled = true;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playWhiteNoise(startTime, duration, volume) {
+      if (!soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        const bufferSize = ctx.sampleRate * duration;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = ctx.createBiquadFilter();
+        filter.type = "bandpass";
+        filter.frequency.value = 1800;
+        filter.Q.value = 1.2;
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(volume, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+
+        noise.start(startTime);
+        noise.stop(startTime + duration);
+      } catch (e) {}
+    }
+
+    function playPttSound() {
+      if (!soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.exponentialRampToValueAtTime(60, now + 0.04);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.05);
+        playWhiteNoise(now + 0.02, 0.03, 0.15);
+      } catch (e) {}
+    }
+
+    function playRogerBeep() {
+      if (!soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+        
+        // NASA / Motorola dual quindar tones
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.frequency.setValueAtTime(2475, now);
+        gain1.gain.setValueAtTime(0.2, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.08);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.frequency.setValueAtTime(1209, now + 0.085);
+        gain2.gain.setValueAtTime(0.2, now + 0.085);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.085);
+        osc2.stop(now + 0.17);
+
+        playWhiteNoise(now + 0.17, 0.08, 0.25);
+      } catch (e) {}
+    }
+
+    function playHailTone() {
+      if (!soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+        [0, 0.12, 0.24].forEach((offset) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "square";
+          osc.frequency.setValueAtTime(1750, now + offset);
+          gain.gain.setValueAtTime(0.25, now + offset);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.09);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + offset);
+          osc.stop(now + offset + 0.1);
+        });
+      } catch (e) {}
+    }
+
+    function toggleAudioMute() {
+      soundEnabled = !soundEnabled;
+      alert(soundEnabled ? "Radio audio FX unmuted!" : "Radio audio FX muted!");
+    }
+
+    // --- Recording & PTT Engine ---
+    let isTransmitting = false;
+    let isLocked = false;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let recordStartTime = 0;
+
+    async function startPtt(e) {
+      if (e) e.preventDefault();
+      if (isTransmitting) return;
+
+      playPttSound();
+      isTransmitting = true;
+      recordStartTime = Date.now();
+
+      // UI state
+      document.getElementById("tx-pulse-ring").classList.remove("hidden");
+      document.getElementById("ptt-btn").classList.remove("bg-gradient-to-b", "from-neutral-700", "via-neutral-800", "to-neutral-900", "border-neutral-600/90");
+      document.getElementById("ptt-btn").classList.add("bg-rose-700", "border-rose-400", "scale-105");
+      document.getElementById("ptt-text").innerText = "TRANSMITTING";
+      document.getElementById("badge-tx").classList.remove("bg-emerald-950", "text-emerald-800");
+      document.getElementById("badge-tx").classList.add("bg-rose-500", "text-white", "animate-pulse");
+
+      // Attempt microphone capture
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        mediaRecorder.ondataavailable = (ev) => { if (ev.data.size > 0) audioChunks.push(ev.data); };
+        mediaRecorder.start(100);
+      } catch (err) {
+        console.warn("Microphone denied or unavailable:", err);
+      }
+    }
+
+    function stopPtt(e) {
+      if (e) e.preventDefault();
+      if (!isTransmitting || isLocked) return;
+
+      isTransmitting = false;
+      playRogerBeep();
+
+      document.getElementById("tx-pulse-ring").classList.add("hidden");
+      document.getElementById("ptt-btn").classList.add("bg-gradient-to-b", "from-neutral-700", "via-neutral-800", "to-neutral-900", "border-neutral-600/90");
+      document.getElementById("ptt-btn").classList.remove("bg-rose-700", "border-rose-400", "scale-105");
+      document.getElementById("ptt-text").innerText = "PUSH TO TALK";
+      document.getElementById("badge-tx").classList.add("bg-emerald-950", "text-emerald-800");
+      document.getElementById("badge-tx").classList.remove("bg-rose-500", "text-white", "animate-pulse");
+
+      const duration = Math.max(1, Math.round((Date.now() - recordStartTime) / 1000));
+
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(audioChunks, { type: "audio/webm" });
+          const audioUrl = URL.createObjectURL(blob);
+          addTransmission({
+            senderName: isOwnerMode ? "Manish" : userName,
+            senderCallsign: isOwnerMode ? "BASE-ALPHA" : userCallsign,
+            isOwner: isOwnerMode,
+            channelId: currentChannelId,
+            type: "voice",
+            audioUrl: audioUrl,
+            audioDuration: duration,
+            text: `🎙️ Voice Dispatch (${duration}s) to Manish`
+          });
+          mediaRecorder.stream.getTracks().forEach(t => t.stop());
+        };
+        mediaRecorder.stop();
+      } else {
+        // Fallback transmission
+        addTransmission({
+          senderName: isOwnerMode ? "Manish" : userName,
+          senderCallsign: isOwnerMode ? "BASE-ALPHA" : userCallsign,
+          isOwner: isOwnerMode,
+          channelId: currentChannelId,
+          type: "voice",
+          text: `🎙️ Voice Transmission (${duration}s) to Manish`
+        });
+      }
+    }
+
+    function togglePttLock() {
+      if (!isTransmitting) {
+        isLocked = true;
+        document.getElementById("ptt-lock-text").innerText = "PTT LOCKED (ON)";
+        document.getElementById("ptt-lock-btn").classList.add("bg-rose-500/20", "border-rose-500/60", "text-rose-300");
+        startPtt();
+      } else {
+        isLocked = false;
+        document.getElementById("ptt-lock-text").innerText = "Click-to-Talk Lock";
+        document.getElementById("ptt-lock-btn").classList.remove("bg-rose-500/20", "border-rose-500/60", "text-rose-300");
+        stopPtt();
+      }
+    }
+
+    function sendHailAlert() {
+      playHailTone();
+      addTransmission({
+        senderName: isOwnerMode ? "Manish" : userName,
+        senderCallsign: isOwnerMode ? "BASE-ALPHA" : userCallsign,
+        isOwner: isOwnerMode,
+        channelId: currentChannelId,
+        type: "hail",
+        text: `🚨 1750 Hz Hailing Tone: Alerted Manish on CH-0${currentChannelId}!`
+      });
+    }
+
+    // Spacebar PTT Listener
+    window.addEventListener("keydown", (e) => {
+      if (e.target.tagName === "INPUT" || e.repeat) return;
+      if (e.code === "Space" && !isTransmitting && !isLocked) {
+        e.preventDefault();
+        startPtt();
+      }
+    });
+
+    window.addEventListener("keyup", (e) => {
+      if (e.target.tagName === "INPUT") return;
+      if (e.code === "Space" && isTransmitting && !isLocked) {
+        e.preventDefault();
+        stopPtt();
+      }
+    });
+
+    // --- Message Management ---
+    function addTransmission(msg) {
+      msg.id = "tx-" + Date.now();
+      msg.timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      messages.push(msg);
+      renderMessages();
+
+      // Trigger automatic simulated radio auto-relay if from a visitor
+      if (!msg.isOwner && msg.type !== "hail") {
+        setTimeout(() => {
+          messages.push({
+            id: "reply-" + Date.now(),
+            channelId: msg.channelId,
+            senderName: "Manish [Base Relay]",
+            senderCallsign: "BASE-ALPHA",
+            isOwner: true,
+            text: `[Auto-Relay via Base-Alpha] 10-4, ${msg.senderName}! Loud and clear on frequency. Manish received your transmission. Stand by! Over.`,
+            type: "text",
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          });
+          playRogerBeep();
+          renderMessages();
+        }, 1200);
+      }
+    }
+
+    function handleSendText(e) {
+      e.preventDefault();
+      const input = document.getElementById("text-input");
+      const text = input.value.trim();
+      if (!text) return;
+
+      playPttSound();
+      addTransmission({
+        senderName: isOwnerMode ? "Manish" : userName,
+        senderCallsign: isOwnerMode ? "BASE-ALPHA" : userCallsign,
+        isOwner: isOwnerMode,
+        channelId: currentChannelId,
+        type: "text",
+        text: text
+      });
+      playRogerBeep();
+      input.value = "";
+    }
+
+    function setQuickText(str) {
+      document.getElementById("text-input").value = str;
+    }
+
+    // --- UI Renderers ---
+    function renderChannels() {
+      const container = document.getElementById("channel-buttons-container");
+      const filterContainer = document.getElementById("filter-container");
+
+      container.innerHTML = CHANNELS.map(chan => `
+        <button onclick="setChannel(${chan.id})" class="p-2 rounded-xl text-left border transition-all ${chan.id === currentChannelId ? 'bg-amber-500/20 border-amber-500/70 text-white' : 'bg-neutral-800 border-neutral-700/60 text-neutral-300'}">
+          <div class="flex justify-between">
+            <span class="text-[10px] font-mono font-bold ${chan.id === currentChannelId ? 'bg-amber-500 text-black px-1 rounded' : 'text-amber-400'}">${chan.code}</span>
+            <span class="text-[9px] font-mono text-neutral-400">${chan.frequency.split(" ")[0]}</span>
+          </div>
+          <div class="text-xs font-semibold mt-1 truncate">${chan.name}</div>
+        </button>
+      `).join("");
+
+      filterContainer.innerHTML = `
+        <button onclick="setFilter('ALL')" class="px-2.5 py-1 rounded-lg text-xs font-mono transition-all shrink-0 ${currentFilterId === 'ALL' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'}">All</button>
+      ` + CHANNELS.map(chan => `
+        <button onclick="setFilter(${chan.id})" class="px-2.5 py-1 rounded-lg text-xs font-mono transition-all shrink-0 ${currentFilterId === chan.id ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'}">${chan.code}</button>
+      `).join("");
+
+      const active = CHANNELS.find(c => c.id === currentChannelId);
+      document.getElementById("lcd-freq").innerText = active.frequency.split(" ")[0];
+      document.getElementById("lcd-channel-name").innerText = active.name;
+      document.getElementById("lcd-channel-code").innerText = active.code;
+      document.getElementById("active-chan-label").innerText = active.code;
+    }
+
+    function setChannel(id) {
+      currentChannelId = id;
+      currentFilterId = id;
+      playRogerBeep();
+      renderChannels();
+      renderMessages();
+    }
+
+    function cycleNextChannel() {
+      const nextId = (currentChannelId % CHANNELS.length) + 1;
+      setChannel(nextId);
+    }
+
+    function setFilter(id) {
+      currentFilterId = id;
+      renderChannels();
+      renderMessages();
+    }
+
+    function renderMessages() {
+      const list = document.getElementById("messages-list");
+      const filtered = currentFilterId === "ALL" ? messages : messages.filter(m => m.channelId === currentFilterId);
+      document.getElementById("transmissions-count").innerText = `${filtered.length} transmissions`;
+
+      if (filtered.length === 0) {
+        list.innerHTML = `<div class="py-12 text-center text-slate-500 text-xs font-mono">Frequency is silent. Key up PTT to speak to Manish!</div>`;
+        return;
+      }
+
+      list.innerHTML = filtered.map(msg => `
+        <div class="p-3.5 rounded-xl border ${msg.isOwner ? 'bg-amber-950/25 border-amber-500/40' : 'bg-slate-800/60 border-slate-700/60'}">
+          <div class="flex items-center justify-between mb-1.5">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold ${msg.isOwner ? 'bg-amber-500 text-slate-950' : 'bg-slate-700 text-slate-200'}">
+                ${msg.isOwner ? 'M' : 'U'}
+              </span>
+              <span class="font-bold text-xs text-white">${msg.senderName}</span>
+              <span class="text-[10px] font-mono px-1 rounded bg-slate-900 text-amber-400 border border-slate-700">${msg.senderCallsign}</span>
+              ${msg.isOwner ? '<span class="text-[9px] font-mono bg-amber-500/20 text-amber-300 px-1 rounded border border-amber-500/30">BASE</span>' : ''}
+            </div>
+            <span class="text-[10px] font-mono text-slate-400">${msg.timestamp}</span>
+          </div>
+
+          ${msg.type === 'voice' && msg.audioUrl ? `
+            <div class="my-2 p-2 rounded-lg bg-slate-950 flex items-center gap-3">
+              <button onclick="new Audio('${msg.audioUrl}').play()" class="w-8 h-8 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-bold">▶</button>
+              <span class="text-xs font-mono text-emerald-400 font-semibold">${msg.text}</span>
+            </div>
+          ` : `
+            <p class="text-xs sm:text-sm text-slate-200">${msg.text}</p>
+          `}
+        </div>
+      `).join("");
+
+      list.scrollTop = list.scrollHeight;
+    }
+
+    function promptChangeCallsign() {
+      const name = prompt("Enter your name:", userName);
+      if (name) {
+        userName = name;
+        userCallsign = name.toUpperCase().slice(0, 5) + "-" + Math.floor(10 + Math.random() * 89);
+        localStorage.setItem("walkie_name", userName);
+        localStorage.setItem("walkie_callsign", userCallsign);
+        document.getElementById("current-callsign-display").innerText = userCallsign;
+      }
+    }
+
+    function toggleModal(id) {
+      const el = document.getElementById(id);
+      el.classList.toggle("hidden");
+      el.classList.toggle("flex");
+    }
+
+    function handleOwnerLogin() {
+      const key = document.getElementById("owner-passkey").value;
+      if (key === "1234") {
+        isOwnerMode = true;
+        document.getElementById("owner-btn-text").innerText = "Manish (Station)";
+        document.getElementById("owner-btn").classList.add("bg-amber-500", "text-slate-950", "font-bold");
+        toggleModal("owner-modal");
+        alert("Authenticated as Base Operator Manish! You are now speaking on behalf of Base Station.");
+      } else {
+        alert("Invalid passkey. Default is 1234.");
+      }
+    }
+
+    // Init VU Meter
+    const vuContainer = document.getElementById("vu-meter");
+    for (let i = 0; i < 12; i++) {
+      const bar = document.createElement("div");
+      bar.className = "flex-1 rounded-sm bg-emerald-950 transition-all";
+      bar.style.height = `${20 + (i % 4) * 15}%`;
+      vuContainer.appendChild(bar);
+    }
+
+    // Initial renders
+    document.getElementById("current-callsign-display").innerText = userCallsign;
+    renderChannels();
+    renderMessages();
+    lucide.createIcons();
+  </script>
+</body>
+                                                                                             </html>
